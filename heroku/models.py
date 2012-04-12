@@ -343,10 +343,11 @@ class App(BaseResource):
         port = parseresult.port
         secret = parseresult.path[1:]
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(60)
         sslsock = ssl.wrap_socket(s)
         sslsock.connect((host, port))
         sslsock.write(secret)
-        print sslsock.read(1024)
+        sslsock.read(1024)
         return sslsock
 
 
