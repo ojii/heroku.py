@@ -7,12 +7,17 @@ heroku.models
 This module contains the models that comprise the Heroku API.
 """
 
-import json
-from urllib import quote
-
-import requests
 from .helpers import to_python
 from .structures import *
+from urllib import quote
+import json
+import os
+import urlparse
+import requests
+import socket
+import ssl
+import subprocess
+
 
 
 class BaseResource(object):
@@ -313,6 +318,36 @@ class App(BaseResource):
         else:
             # Return line iterator for tail!
             return r.iter_lines()
+    
+    def run(self, *args):
+        command = ' '.join(args)
+        try:
+            ps_env = {
+                'TERM': os.environ['TERM'],
+                'COLUMNS': subprocess.check_output(['tput', 'cols']).strip(),
+                'LINES': subprocess.check_output(['tput', 'lines']).strip()
+            }
+        except:
+            ps_env = {
+                'TERM': os.environ['TERM'],
+            }
+        opts = {'attach': True, 'command': command, 'ps_env': ps_env}
+        r = self._h._http_resource(
+            method='POST',
+            resource=('apps', self.name, 'ps'),
+            data=opts
+        )
+        ps = json.loads(r.content)
+        parseresult = urlparse.urlparse(ps['rendezvous_url'])
+        host = parseresult.hostname
+        port = parseresult.port
+        secret = parseresult.path[1:]
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sslsock = ssl.wrap_socket(s)
+        sslsock.connect((host, port))
+        sslsock.write(secret)
+        print sslsock.read(1024)
+        return sslsock
 
 
 
