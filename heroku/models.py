@@ -311,7 +311,7 @@ class App(BaseResource):
         )
 
         # Grab the actual logs.
-        r = requests.get(r.content, verify=False)
+        r = requests.get(r.content)#, verify=False)
 
         if not tail:
             return r.content
@@ -331,24 +331,25 @@ class App(BaseResource):
             ps_env = {
                 'TERM': os.environ['TERM'],
             }
-        opts = {'attach': True, 'command': command, 'ps_env': ps_env}
+        opts = {'attach': False, 'command': command, 'ps_env': ps_env}
         r = self._h._http_resource(
             method='POST',
             resource=('apps', self.name, 'ps'),
             data=opts
         )
         ps = json.loads(r.content)
-        parseresult = urlparse.urlparse(ps['rendezvous_url'])
-        host = parseresult.hostname
-        port = parseresult.port
-        secret = parseresult.path[1:]
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(60)
-        sslsock = ssl.wrap_socket(s)
-        sslsock.connect((host, port))
-        sslsock.write(secret)
-        sslsock.read(1024)
-        return sslsock
+        return self.logs(source=ps['process'])
+#        parseresult = urlparse.urlparse(ps['rendezvous_url'])
+#        host = parseresult.hostname
+#        port = parseresult.port
+#        secret = parseresult.path[1:]
+#        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#        s.settimeout(60)
+#        sslsock = ssl.wrap_socket(s)
+#        sslsock.connect((host, port))
+#        sslsock.write(secret)
+#        sslsock.read(1024)
+#        return sslsock
 
 
 
