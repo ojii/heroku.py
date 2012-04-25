@@ -288,7 +288,7 @@ class App(BaseResource):
         )
         return r.ok
 
-    def logs(self, num=None, source=None, tail=False):
+    def logs(self, num=None, source=None, tail=False, ps=None):
         """Returns the requested log."""
 
         # Bootstrap payload package.
@@ -302,6 +302,9 @@ class App(BaseResource):
 
         if tail:
             payload['tail'] = 1
+        
+        if ps:
+            payload['ps'] = ps
 
         # Grab the URL of the logplex endpoint.
         r = self._h._http_resource(
@@ -319,7 +322,17 @@ class App(BaseResource):
             # Return line iterator for tail!
             return r.iter_lines()
     
-    def run(self, *args):
+    def run_async(self, *args):
+        command = ' '.join(args)
+        opts = {'command': command}
+        r = self._h._http_resource(
+            method='POST',
+            resource=('apps', self.name, 'ps'),
+            data=opts
+        )
+        return json.loads(r.content)
+    
+    def run_sync(self, *args):
         command = ' '.join(args)
         try:
             ps_env = {
@@ -331,26 +344,40 @@ class App(BaseResource):
             ps_env = {
                 'TERM': os.environ['TERM'],
             }
-        opts = {'attach': False, 'command': command, 'ps_env': ps_env}
+        opts = {'attach': True, 'command': command, 'ps_env': ps_env}
         r = self._h._http_resource(
             method='POST',
             resource=('apps', self.name, 'ps'),
             data=opts
         )
         ps = json.loads(r.content)
-        return self.logs(source=ps['process'])
-#        parseresult = urlparse.urlparse(ps['rendezvous_url'])
-#        host = parseresult.hostname
-#        port = parseresult.port
-#        secret = parseresult.path[1:]
-#        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#        s.settimeout(60)
-#        sslsock = ssl.wrap_socket(s)
-#        sslsock.connect((host, port))
-#        sslsock.write(secret)
-#        sslsock.read(1024)
-#        return sslsock
-
+        from pprint import pprint;pprint(ps)
+#        uri = URI.parse(rendezvous_url)
+        parseresult = urlparse.urlparse(ps['rendezvous_url'])
+#        host, port, secret = uri.host, uri.port, uri.path[1..-1]
+        host = parseresult.hostname
+        port = parseresult.port
+        secret = parseresult.path[1:]
+#        ssl_socket = Timeout.timeout(connect_timeout) do
+#          ssl_context = OpenSSL::SSL::SSLContext.new
+#          if ((host =~ /heroku\.com$/) && !(ENV["HEROKU_SSL_VERIFY"] == "disable"))
+#            ssl_context.ca_file = File.expand_path("../../../../data/cacert.pem", __FILE__)
+#            ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
+#          end
+        # no ssl verification for now
+#          tcp_socket = TCPSocket.open(host, port)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(60)
+#          ssl_socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, ssl_context)
+        sslsock = ssl.wrap_socket(s)
+#          ssl_socket.connect
+        sslsock.connect((host, port))
+#          ssl_socket.puts(secret)
+        sslsock.write(str(secret))
+#          ssl_socket.readline
+        print(sslsock.read())
+#          ssl_socket
+        return sslsock
 
 
 class Collaborator(BaseResource):
