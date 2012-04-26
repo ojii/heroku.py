@@ -351,7 +351,6 @@ class App(BaseResource):
             data=opts
         )
         ps = json.loads(r.content)
-        from pprint import pprint;pprint(ps)
 #        uri = URI.parse(rendezvous_url)
         parseresult = urlparse.urlparse(ps['rendezvous_url'])
 #        host, port, secret = uri.host, uri.port, uri.path[1..-1]
@@ -367,13 +366,13 @@ class App(BaseResource):
         # no ssl verification for now
 #          tcp_socket = TCPSocket.open(host, port)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(60)
+        s.settimeout(120)
 #          ssl_socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, ssl_context)
         sslsock = ssl.wrap_socket(s)
 #          ssl_socket.connect
         sslsock.connect((host, port))
 #          ssl_socket.puts(secret)
-        sslsock.write(str(secret))
+        sslsock.write(str(secret) + '\n')
 #          ssl_socket.readline
         print(sslsock.read())
 #          ssl_socket
